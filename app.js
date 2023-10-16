@@ -10,16 +10,12 @@ app.use(express.json());
 
 app.use((req, res, next) => {
   req.user = {
-    _id: '5d8b8592978f8bd833ca8133' // вставьте сюда _id созданного в предыдущем пункте пользователя
+    _id: '5d8b8592978f8bd833ca8133', // вставьте сюда _id созданного в предыдущем пункте пользователя
   };
   next();
 });
 
 app.use(router);
-
-app.use((req, res) => {
-  res.status(404).send({ message: 'Ошибка - 404 Страница не найдена' });
-});
 
 async function init() {
   await mongoose.connect(MONGO_URL);

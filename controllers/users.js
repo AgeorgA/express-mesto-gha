@@ -4,11 +4,11 @@ const User = require('../models/user');
 module.exports.createUser = (req, res) => {
   const { name, about, avatar } = req.body;
   User.create({ name, about, avatar })
-    .then(user => res.status(201).send({ data: user }))
-    .catch(error => {
+    .then((user) => res.status(201).send({ data: user }))
+    .catch((error) => {
       if (error instanceof ValidationError) {
         return res.status(400).send({
-          message: 'Переданы некорректные данные при создании пользователя'
+          message: 'Переданы некорректные данные при создании пользователя',
         });
       }
       return res.status(500).send({ message: 'Произошла ошибка на стороне сервера' });
@@ -19,8 +19,8 @@ module.exports.getUserById = (req, res) => {
   const { userId } = req.params;
   User.findById(userId)
     .orFail(new Error('NotFound'))
-    .then(user => res.status(200).send({ data: user }))
-    .catch(error => {
+    .then((user) => res.status(200).send({ data: user }))
+    .catch((error) => {
       if (error.message === 'NotFound') {
         return res.status(404).send({ message: ' Пользователь по указанному id не найден' });
       }
@@ -35,14 +35,14 @@ function updateUser(req, res, newData) {
   const userId = req.user._id;
   User.findByIdAndUpdate(userId, newData, { new: true, runValidators: true })
     .orFail(new Error('NotFound'))
-    .then(user => res.status(200).send({ data: user }))
-    .catch(error => {
+    .then((user) => res.status(200).send({ data: user }))
+    .catch((error) => {
       if (error.message === 'NotFound') {
         return res.status(404).send({ message: 'Пользователь с указанным id не найден' });
       }
       if (error instanceof ValidationError) {
         return res.status(400).send({
-          message: 'Переданы некорректные данные при обновлении профиля'
+          message: 'Переданы некорректные данные при обновлении профиля',
         });
       }
       return res.status(500).send({ message: 'Произошла ошибка на стороне сервера' });
@@ -51,10 +51,8 @@ function updateUser(req, res, newData) {
 
 module.exports.getUsers = (req, res) => {
   User.find({})
-    .then(users => res.status(200).send({ data: users }))
-    .catch(error =>
-      res.status(500).send({ message: 'Произошла ошибка на стороне сервера', error })
-    );
+    .then((users) => res.status(200).send({ data: users }))
+    .catch((error) => res.status(500).send({ message: 'Произошла ошибка на стороне сервера', error }));
 };
 
 module.exports.updateProfile = (req, res) => {

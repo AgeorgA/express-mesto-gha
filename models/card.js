@@ -6,32 +6,32 @@ const cardSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Поле name является обязательным'],
       minlength: [2, 'Минимальная длина 2 символа'],
-      maxlength: [30, 'Максимальная длина 30 символов']
+      maxlength: [30, 'Максимальная длина 30 символов'],
     },
 
     link: {
       type: String,
-      required: [true, 'Поле link является обязательным']
+      required: [true, 'Поле link является обязательным'],
     },
 
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      ref: 'user'
+      ref: 'user',
     },
 
     likes: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: [mongoose.Schema.Types.ObjectId],
       default: [],
-      ref: 'user'
+      ref: 'user',
     },
 
     createdAt: {
       type: Date,
-      default: Date.now
-    }
+      default: Date.now,
+    },
   },
-  { versionKey: false, timestamps: true }
+  { versionKey: false, timestamps: true },
 );
 
 module.exports = mongoose.model('card', cardSchema);
