@@ -2,16 +2,16 @@ const router = require('express').Router();
 const {
   getUsers,
   getUserById,
-  createUser,
+  getCurrentUser,
   updateProfile,
   updateAvatar,
 } = require('../controllers/users');
 
-router.get('/users', getUsers); // вернуть всех пользователей
-router.get('/users/:userId', getUserById); // вернуть конкретного пользователя
-router.post('/users', createUser); // создать пользователя
+router.get('/', getUsers); // вернуть всех пользователей
+router.get('/:userId', getUserById); // вернуть конкретного пользователя
+router.post('/me', getCurrentUser);
 
-router.patch('/users/me', updateProfile); // обновить профиль
-router.patch('/users/me/avatar', updateAvatar); // обновить аватар
+router.patch('/me', updateProfile); // обновить профиль
+router.patch('/me/avatar', updateAvatar); // обновить аватар
 
 module.exports = router;
