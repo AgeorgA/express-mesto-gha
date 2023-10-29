@@ -2,6 +2,7 @@ const { ValidationError, CastError } = require('mongoose').Error;
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const statusCodes = require('../utils/constants').HTTP_STATUS;
 
 module.exports.createUser = (req, res, next) => {
   const {
@@ -16,10 +17,15 @@ module.exports.createUser = (req, res, next) => {
       email,
       password: hash,
     }))
-    .then((user) => res.status(201).send({ data: user }))
+    .then((user) => res.status(statusCodes.CREATED).send({
+      name: user.name,
+      about: user.about,
+      avatar: user.avatar,
+      email: user.email,
+    }))
     .catch((error) => {
       if (error instanceof ValidationError) {
-        return res.status(400).send({
+        return res.status(statusCodes.BAD_REQUEST).send({
           message: 'Переданы некорректные данные при создании пользователя',
         });
       }
@@ -28,83 +34,79 @@ module.exports.createUser = (req, res, next) => {
       } else {
         next(error);
       }
-      return res
-        .status(500)
-        .send({ message: 'Произошла ошибка на стороне сервера' });
+      return next(error);
     });
 };
 
-module.exports.getUserById = (req, res) => {
+module.exports.getUserById = (req, res, next) => {
   const { userId } = req.params;
   User.findById(userId)
     .orFail(new Error('NotFound'))
-    .then((user) => res.status(200).send({ data: user }))
+    .then((user) => res.status(statusCodes.CREATED).send({ data: user }))
     .catch((error) => {
       if (error.message === 'NotFound') {
         return res
-          .status(404)
+          .status(statusCodes.NOT_FOUND)
           .send({ message: ' Пользователь по указанному id не найден' });
       }
       if (error instanceof CastError) {
-        return res.status(400).send({ message: 'Передан невалидный id' });
+        return res
+          .status(statusCodes.BAD_REQUEST)
+          .send({ message: 'Передан невалидный id' });
       }
-      return res
-        .status(500)
-        .send({ message: 'Произошла ошибка на стороне сервера' });
+      return next(error);
     });
 };
 
-function updateUser(req, res, newData) {
+function updateUser(req, res, newData, next) {
   const userId = req.user._id;
   User.findByIdAndUpdate(userId, newData, { new: true, runValidators: true })
     .orFail(new Error('NotFound'))
-    .then((user) => res.status(200).send({ data: user }))
+    .then((user) => res.status(statusCodes.CREATED).send({ data: user }))
     .catch((error) => {
       if (error.message === 'NotFound') {
         return res
-          .status(404)
+          .status(statusCodes.NOT_FOUND)
           .send({ message: 'Пользователь с указанным id не найден' });
       }
       if (error instanceof ValidationError) {
-        return res.status(400).send({
+        return res.status(statusCodes.BAD_REQUEST).send({
           message: 'Переданы некорректные данные при обновлении профиля',
         });
       }
-      return res
-        .status(500)
-        .send({ message: 'Произошла ошибка на стороне сервера' });
+      return next(error);
     });
 }
 
 module.exports.getUsers = (req, res) => {
   User.find({})
-    .then((users) => res.status(200).send({ data: users }))
+    .then((users) => res.status(statusCodes.CREATED).send({ data: users }))
     .catch((error) => res
       .status(500)
       .send({ message: 'Произошла ошибка на стороне сервера', error }));
 };
 
-module.exports.getCurrentUser = (req, res) => {
+module.exports.getCurrentUser = (req, res, next) => {
   const { userId } = req.user._id;
   User.findById(userId)
     .orFail(new Error('NotFound'))
-    .then((user) => res.status(200).send({ data: user }))
+    .then((user) => res.status(statusCodes.CREATED).send({ data: user }))
     .catch((error) => {
       if (error.message === 'NotFound') {
         return res
-          .status(404)
+          .status(statusCodes.NOT_FOUND)
           .send({ message: ' Пользователь по указанному id не найден' });
       }
       if (error instanceof CastError) {
-        return res.status(400).send({ message: 'Передан невалидный id' });
+        return res
+          .status(statusCodes.BAD_REQUEST)
+          .send({ message: 'Передан невалидный id' });
       }
-      return res
-        .status(500)
-        .send({ message: 'Произошла ошибка на стороне сервера' });
+      return next(error);
     });
 };
 
-module.exports.login = (req, res) => {
+module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
   return User.findUserByCredentials(email, password)
     .then((user) => {
@@ -114,9 +116,7 @@ module.exports.login = (req, res) => {
         }),
       });
     })
-    .catch((error) => {
-      res.status(401).send({ message: error.message });
-    });
+    .catch(next);
 };
 
 module.exports.updateProfile = (req, res) => {
