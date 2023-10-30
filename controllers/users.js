@@ -3,6 +3,9 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const statusCodes = require('../utils/constants').HTTP_STATUS;
+const NotFoundError = require('../errors/NotFound');
+const BadRequestError = require('../errors/BadRequest');
+const ConflictError = require('../errors/Conflict');
 
 module.exports.createUser = (req, res, next) => {
   const {
@@ -25,14 +28,14 @@ module.exports.createUser = (req, res, next) => {
     }))
     .catch((error) => {
       if (error instanceof ValidationError) {
-        return res.status(statusCodes.BAD_REQUEST).send({
-          message: 'Переданы некорректные данные при создании пользователя',
-        });
+        return next(
+          new BadRequestError(
+            'Переданы некорректные данные при создании пользователя',
+          ),
+        );
       }
       if (error.code === 11000) {
-        next(new Error('Учетная запись уже существует'));
-      } else {
-        next(error);
+        return next(new ConflictError('Учетная запись уже существует'));
       }
       return next(error);
     });
@@ -41,18 +44,11 @@ module.exports.createUser = (req, res, next) => {
 module.exports.getUserById = (req, res, next) => {
   const { userId } = req.params;
   User.findById(userId)
-    .orFail(new Error('NotFound'))
-    .then((user) => res.status(statusCodes.CREATED).send({ data: user }))
+    .orFail(new NotFoundError('NotFound'))
+    .then((user) => res.status(statusCodes.OK).send({ data: user }))
     .catch((error) => {
-      if (error.message === 'NotFound') {
-        return res
-          .status(statusCodes.NOT_FOUND)
-          .send({ message: ' Пользователь по указанному id не найден' });
-      }
       if (error instanceof CastError) {
-        return res
-          .status(statusCodes.BAD_REQUEST)
-          .send({ message: 'Передан невалидный id' });
+        return next(new BadRequestError('Передан не валидный id'));
       }
       return next(error);
     });
@@ -64,46 +60,29 @@ function updateUser(req, res, newData, next) {
     .orFail(new Error('NotFound'))
     .then((user) => res.status(statusCodes.CREATED).send({ data: user }))
     .catch((error) => {
-      if (error.message === 'NotFound') {
-        return res
-          .status(statusCodes.NOT_FOUND)
-          .send({ message: 'Пользователь с указанным id не найден' });
-      }
-      if (error instanceof ValidationError) {
-        return res.status(statusCodes.BAD_REQUEST).send({
-          message: 'Переданы некорректные данные при обновлении профиля',
-        });
+      if (error instanceof CastError) {
+        return next(
+          new BadRequestError(
+            'Переданы некорректные данные при обновлении профиля',
+          ),
+        );
       }
       return next(error);
     });
 }
 
-module.exports.getUsers = (req, res) => {
+module.exports.getUsers = (req, res, next) => {
   User.find({})
-    .then((users) => res.status(statusCodes.CREATED).send({ data: users }))
-    .catch((error) => res
-      .status(500)
-      .send({ message: 'Произошла ошибка на стороне сервера', error }));
+    .then((users) => res.status(statusCodes.OK).send({ data: users }))
+    .catch(next);
 };
 
 module.exports.getCurrentUser = (req, res, next) => {
   const { userId } = req.user._id;
   User.findById(userId)
-    .orFail(new Error('NotFound'))
-    .then((user) => res.status(statusCodes.CREATED).send({ data: user }))
-    .catch((error) => {
-      if (error.message === 'NotFound') {
-        return res
-          .status(statusCodes.NOT_FOUND)
-          .send({ message: ' Пользователь по указанному id не найден' });
-      }
-      if (error instanceof CastError) {
-        return res
-          .status(statusCodes.BAD_REQUEST)
-          .send({ message: 'Передан невалидный id' });
-      }
-      return next(error);
-    });
+    .orFail(new NotFoundError('NotFound'))
+    .then((user) => res.status(statusCodes.OK).send({ data: user }))
+    .catch(next);
 };
 
 module.exports.login = (req, res, next) => {

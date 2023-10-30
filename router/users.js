@@ -12,6 +12,7 @@ const {
 } = require('../controllers/users');
 
 router.get('/', getUsers); // вернуть всех пользователей
+router.get('/me', getCurrentUser);
 router.get(
   '/:userId',
   celebrate({
@@ -21,8 +22,6 @@ router.get(
   }),
   getUserById,
 );
-
-router.post('/me', getCurrentUser);
 
 router.patch(
   '/me',

@@ -1,30 +1,34 @@
 const { ValidationError, CastError } = require('mongoose').Error;
 const Card = require('../models/card');
 const statusCodes = require('../utils/constants').HTTP_STATUS;
+const NotFoundError = require('../errors/NotFound');
+const BadRequestError = require('../errors/BadRequest');
+const ForbiddenError = require('../errors/Forbidden');
 
-module.exports.createCard = (req, res) => {
+module.exports.createCard = (req, res, next) => {
   const { name, link } = req.body;
   Card.create({ name, link, owner: req.user._id })
     .then((card) => res.status(statusCodes.CREATED).send({ data: card }))
     .catch((error) => {
       if (error instanceof ValidationError) {
-        return res.status(statusCodes.BAD_REQUEST).send({
-          message: 'Переданы некорректные данные при создании карточки',
-        });
+        return next(
+          new BadRequestError(
+            'Переданы некорректные данные при создании карточки',
+          ),
+        );
       }
-      return res
-        .status(statusCodes.INTERNAL_SERVER_ERROR)
-        .send({ message: 'Произошла ошибка на стороне сервера' });
+      return next(error);
     });
 };
 
 module.exports.deleteCard = (req, res, next) => {
   Card.findById(req.params.cardId)
-    .orFail(new Error('NotFound'))
+
+    .orFail(new NotFoundError('NotFound'))
     .then((card) => {
       if (card.owner.toString() !== req.user._id) {
         return next(
-          new Error(
+          new ForbiddenError(
             'Вы не являетесь обладателем карточки, поэтому не можете ее удалить',
           ),
         );
@@ -32,57 +36,41 @@ module.exports.deleteCard = (req, res, next) => {
       return Card.deleteOne(card).then(() => res.status(statusCodes.OK).send({ data: card }));
     })
     .catch((error) => {
-      if (error.message === 'NotFound') {
-        return res
-          .status(statusCodes.NOT_FOUND)
-          .send({ message: 'Карточка с указанным id не найдена' });
-      }
       if (error instanceof CastError) {
-        return res.status(statusCodes.BAD_REQUEST).send({
-          message: 'Переданы некорректные данные',
-        });
+        return next(new BadRequestError('Переданы некорректные данные'));
       }
-      return res
-        .status(statusCodes.INTERNAL_SERVER_ERROR)
-        .send({ message: 'Произошла ошибка на стороне сервера' });
+      return next(error);
     });
 };
 
-function changeLikeCardStatus(req, res, likeStatus) {
+function changeLikeCardStatus(req, res, likeStatus, next) {
   Card.findByIdAndUpdate(req.params.cardId, likeStatus, { new: true })
-    .orFail(new Error('NotFound'))
+    .orFail(new NotFoundError('NotFound'))
     .then((card) => res.status(statusCodes.OK).send({ data: card }))
     .catch((error) => {
-      if (error.message === 'NotFound') {
-        return res
-          .status(statusCodes.NOT_FOUND)
-          .send({ message: 'Передан несуществующий id карточки' });
-      }
       if (error instanceof CastError) {
-        return res.status(statusCodes.BAD_REQUEST).send({
-          message: 'Переданы некорректные данные для постановки/снятии лайка',
-        });
+        return next(
+          new BadRequestError(
+            'Переданы некорректные данные для постановки/снятия лайка',
+          ),
+        );
       }
-      return res
-        .status(statusCodes.INTERNAL_SERVER_ERROR)
-        .send({ message: 'Произошла ошибка на стороне сервера' });
+      return next(error);
     });
 }
 
-module.exports.getCards = (req, res) => {
+module.exports.getCards = (req, res, next) => {
   Card.find({})
     .then((cards) => res.status(statusCodes.OK).send({ data: cards }))
-    .catch((error) => res
-      .status(statusCodes.INTERNAL_SERVER_ERROR)
-      .send({ message: 'Произошла ошибка на стороне сервера', error }));
+    .catch(next);
 };
 
-module.exports.likeCard = (req, res) => {
+module.exports.likeCard = (req, res, next) => {
   const likeStatus = { $addToSet: { likes: req.user._id } };
-  changeLikeCardStatus(req, res, likeStatus);
+  changeLikeCardStatus(req, res, likeStatus, next);
 };
 
-module.exports.dislikeCard = (req, res) => {
+module.exports.dislikeCard = (req, res, next) => {
   const likeStatus = { $pull: { likes: req.user._id } };
-  changeLikeCardStatus(req, res, likeStatus);
+  changeLikeCardStatus(req, res, likeStatus, next);
 };

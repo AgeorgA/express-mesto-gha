@@ -13,9 +13,8 @@ app.use(express.json());
 
 app.post('/signin', login);
 app.post('/signup', createUser);
-
-app.use(router);
 app.use(auth);
+app.use(router);
 app.use(errors());
 
 app.use((err, req, res, next) => {
