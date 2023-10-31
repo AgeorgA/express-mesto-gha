@@ -10,14 +10,14 @@ module.exports = (req, res, next) => {
   const { authorization } = req.headers;
 
   if (!authorization || !authorization.startsWith('Bearer ')) {
-    return handleAuthError(res);
+    return handleAuthError(res, next);
   }
   const token = extractBearerToken(authorization);
   let payload;
   try {
     payload = jwt.verify(token, 'secret-value');
   } catch (err) {
-    return handleAuthError(res);
+    return handleAuthError(res, next);
   }
   req.user = payload;
   return next();

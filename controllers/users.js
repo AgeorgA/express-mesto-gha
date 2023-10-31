@@ -78,7 +78,7 @@ module.exports.getUsers = (req, res, next) => {
 };
 
 module.exports.getCurrentUser = (req, res, next) => {
-  const { userId } = req.user._id;
+  const userId = req.user._id;
   User.findById(userId)
     .orFail(new NotFoundError('NotFound'))
     .then((user) => res.status(statusCodes.OK).send({ data: user }))
